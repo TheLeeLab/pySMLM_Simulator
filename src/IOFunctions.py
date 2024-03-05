@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 This class contains functions pertaining to IO of files based for the
-RASP code
+pySMLM code
 jsb92, 2024/01/02
 """
 import json
 import os
 from skimage import io
 import numpy as np
+from PIL import Image
 
 class IO_Functions():
     def __init__(self):
@@ -86,6 +87,25 @@ class IO_Functions():
                 image = image.T
         return np.asarray(np.swapaxes(image,0,1), dtype='double')
     
+    def read_png(self, file_path):
+        """
+        Read an RGBA/RGB PNG file using the skimage library.
+    
+        Args:
+        - file_path (str): The path to the png file to be read.
+    
+        Returns:
+        - image (numpy.ndarray): The image data from the png file.
+        """
+        from skimage.color import rgb2gray, rgba2rgb
+        image = io.imread(file_path, plugin='pil')
+        if image.shape[-1] == 4: # if rgba
+            image = rgba2rgb(image)
+        # Use skimage's imread function to read the png file
+        # specifying the 'pil' plugin explicitly
+        image = rgb2gray(image)
+        return image
+    
     def read_tiff_tophotons(self, file_path, QE=0.95, gain_map=1., offset_map=0.):
         """
         Read a TIFF file using the skimage library.
@@ -119,7 +139,7 @@ class IO_Functions():
             data = np.divide(np.divide(np.subtract(data, offset_map), gain_map), QE)
         return data
     
-    def write_tiff(self, volume, file_path, bit=np.uint16):
+    def write_tiff(self, volume, file_path, bit=np.uint16, flip=True):
         """
         Write a TIFF file using the skimage library.
     
@@ -134,7 +154,28 @@ class IO_Functions():
         - Additional metadata specifying the software as 'Python' is included.
         """
         if len(volume.shape) > 2: # if image a stack
-            if volume.shape[-1] < volume.shape[0]: # if stack is wrong way round
+            if flip == True: # if stack is wrong way round
                 volume = volume.T
             volume = np.asarray(np.swapaxes(volume,1,2), dtype='double')
         io.imsave(file_path, np.asarray(volume, dtype=bit), plugin='tifffile', bigtiff=True, photometric='minisblack', metadata={'Software': 'Python'}, check_contrast=False)
+
+    def write_gif(self, volume, file_path, duration=200, loop=0):
+        """
+        Write a GIF file using the PIL library.
+    
+        Args:
+        - volume (numpy.ndarray): The volume data to be saved as a GIF file.
+        - file_path (str): The path where the GIF file will be saved.
+        - duration (int): duration in ms between frames
+        - loop (int): how many times it will loop; default is 0 (loops forever)
+        """
+        I16 = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * 255.9).astype(np.uint16)
+    
+        frames = []
+        for i in np.arange(I16.shape[-1]-1):
+            frames.append(Image.fromarray(I16[:,:,i+1]))
+        
+        frame_one = Image.fromarray(I16[:,:,0])
+        frame_one.save(file_path, format="GIF", append_images=frames,
+                       save_all=True, duration=duration, loop=loop)
+        return
