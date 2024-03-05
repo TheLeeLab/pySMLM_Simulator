@@ -62,6 +62,7 @@ class Simulation_Routines():
                 to_save)
         
         image = IO.read_png(example_image_path)
+        image[image < 0.5] = 0
         x0, y0 = np.nonzero(image)
         indices = np.ravel_multi_index([x0, y0], image.shape, order='F')
         
