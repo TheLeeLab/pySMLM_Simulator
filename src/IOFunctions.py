@@ -15,23 +15,17 @@ class IO_Functions():
         self = self
         return
     
-    def save_analysis_params(self, analysis_p_directory, to_save, gain_map=0, offset_map=0):
+    def save_simulation_params(self, analysis_p_directory, to_save):
         """
-        saves analysis parameters.
+        saves simulation parameters.
     
         Args:
         - analysis_p_directory (str): The folder to save to.
-        - to_save (dict): dict to save of analysis parameters.
-        - gain_map (array): gain_map to save
-        - offset_map (array): offset_map to save
+        - to_save (dict): dict to save of simulation parameters.
     
         """
         self.make_directory(analysis_p_directory)
-        self.save_as_json(to_save, os.path.join(analysis_p_directory, 'analysis_params.json'))
-        if type(gain_map) != float:
-            self.write_tiff(gain_map, os.path.join(analysis_p_directory, 'gain_map.tif'), np.uint32)
-        if type(offset_map) != float:
-            self.write_tiff(offset_map, os.path.join(analysis_p_directory, 'offset_map.tif'), np.uint32)
+        self.save_as_json(to_save, os.path.join(analysis_p_directory, 'simulation_params.json'))
         return
     
     def load_json(self, filename):
