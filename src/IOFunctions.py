@@ -147,13 +147,16 @@ class IO_Functions():
         - The plugin is set to 'tifffile' and photometric to 'minisblack'.
         - Additional metadata specifying the software as 'Python' is included.
         """
+        max_value = np.iinfo(bit).max
+        if np.nanmax(volume) > max_value:
+            volume = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * max_value)
         if len(volume.shape) > 2: # if image a stack
             if flip == True: # if stack is wrong way round
                 volume = volume.T
             volume = np.asarray(np.swapaxes(volume,1,2), dtype='double')
         io.imsave(file_path, np.asarray(volume, dtype=bit), plugin='tifffile', bigtiff=True, photometric='minisblack', metadata={'Software': 'Python'}, check_contrast=False)
 
-    def write_gif(self, volume, file_path, duration=200, loop=0):
+    def write_gif(self, volume, file_path, duration=100, loop=0, two_images=True):
         """
         Write a GIF file using the PIL library.
     
@@ -162,14 +165,27 @@ class IO_Functions():
         - file_path (str): The path where the GIF file will be saved.
         - duration (int): duration in ms between frames
         - loop (int): how many times it will loop; default is 0 (loops forever)
+        - two_images (boolean). If two images stacked on top, will normalise these separately (assumes equal size of images)
         """
-        I16 = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * 255.9).astype(np.uint16)
+        if two_images == True:
+            I8 = np.zeros_like(volume)
+            mid_point = int(I8.shape[0]/2)
+            maxhalfone = np.max(volume[:mid_point, :, :])
+            minhalfone = np.min(volume[:mid_point, :, :])
+            I8[:mid_point, :, :] = ((volume[:mid_point, :, :] - minhalfone) / (maxhalfone - minhalfone) * 255.9).astype(np.uint8)
+            
+            maxhalftwo = np.max(volume[mid_point:, :, :])
+            minhalftwo = np.min(volume[mid_point:, :, :])           
+            I8[mid_point:, :, :] = ((volume[mid_point:, :, :] - minhalftwo) / (maxhalftwo - minhalftwo) * 255.9).astype(np.uint8)
+
+        else:
+            I8 = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * 255.9).astype(np.uint8)
     
         frames = []
-        for i in np.arange(I16.shape[-1]-1):
-            frames.append(Image.fromarray(I16[:,:,i+1]))
+        for i in np.arange(I8.shape[-1]-1):
+            frames.append(Image.fromarray(I8[:,:,i+1]))
         
-        frame_one = Image.fromarray(I16[:,:,0])
+        frame_one = Image.fromarray(I8[:,:,0])
         frame_one.save(file_path, format="GIF", append_images=frames,
                        save_all=True, duration=duration, loop=loop)
         return
