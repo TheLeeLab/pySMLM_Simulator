@@ -74,15 +74,19 @@ class Simulation_Routines():
                                     sigma_sensor=sigma_sensor)
         
         stack_superres_cumsum = np.vstack([superres_image_stack, superres_cumsum_stack])
-        
+        del superres_cumsum_stack
         
         gif_filepath = os.path.join(simulation_directory, raw_filename+'_superres.gif')
         tiff_filepath = os.path.join(simulation_directory, raw_filename+'_superres.tiff')
         tiff_sr_filepath = os.path.join(simulation_directory, raw_filename+'_superres_singleimage.tiff')
         tiff_dl_filepath = os.path.join(simulation_directory, raw_filename+'_diffractionlimited.tiff')
         
-        IO.write_gif(stack_superres_cumsum, gif_filepath, duration=200, loop=0)
         IO.write_tiff(superres_image_stack, tiff_filepath)
+        del superres_image_stack
         IO.write_tiff(superres_image, tiff_sr_filepath)
+        del superres_image
         IO.write_tiff(dl_image, tiff_dl_filepath)
+        del dl_image
+        IO.write_gif(stack_superres_cumsum, gif_filepath, duration=200, loop=0)
+        del stack_superres_cumsum
         return

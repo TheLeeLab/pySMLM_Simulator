@@ -180,12 +180,14 @@ class IO_Functions():
 
         else:
             I8 = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * 255.9).astype(np.uint8)
-    
+            
+        del volume
         frames = []
         for i in np.arange(I8.shape[-1]-1):
             frames.append(Image.fromarray(I8[:,:,i+1]))
         
         frame_one = Image.fromarray(I8[:,:,0])
+        del I8
         frame_one.save(file_path, format="GIF", append_images=frames,
                        save_all=True, duration=duration, loop=loop)
         return
