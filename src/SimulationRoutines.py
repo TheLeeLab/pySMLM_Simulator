@@ -22,7 +22,7 @@ class Simulation_Routines():
     
     def generate_tiffs_and_gifs(self, example_image_path, n_photons=1000, n_frames=1000, 
         labelling_density=2, pixel_size=0.11, imaging_wavelength=0.520, NA=1.49,
-        lambda_sensor=100, mu_sensor=100, sigma_sensor=10):
+        lambda_sensor=100, mu_sensor=100, sigma_sensor=10, invert=False):
         """
         generates tiffs and gifs of "super-resolved" stacks and images from an
         intial input image (ideally a black-and-white image where values above 0
@@ -39,7 +39,8 @@ class Simulation_Routines():
         - NA (float). Default 1.49 micron, defines how large your PSF will be
         - lambda_sensor (float). mean of poisson rnv
         - mu_semsor (float) mean of gaussian for camera read noise
-        - sigma_sensor (float) sigma of gaussian read nosie
+        - sigma_sensor (float) sigma of gaussian read noise
+        - Invert (boolean). If True, goes from white to black when plot
         """
         from datetime import datetime
         d = datetime.today().strftime('%Y%m%d')
@@ -73,6 +74,17 @@ class Simulation_Routines():
                                     lambda_sensor=lambda_sensor, mu_sensor=mu_sensor, 
                                     sigma_sensor=sigma_sensor)
         
+        if invert==True: # if true, invert all of these values
+            max_value = np.iinfo(np.uint16).max
+            superres_image_stack = ((superres_image_stack - np.min(superres_image_stack)) / (np.max(superres_image_stack) - np.min(superres_image_stack)) * max_value)
+            superres_image_stack = -superres_image_stack + max_value
+            superres_cumsum_stack = ((superres_cumsum_stack - np.min(superres_cumsum_stack)) / (np.max(superres_cumsum_stack) - np.min(superres_cumsum_stack)) * max_value)
+            superres_cumsum_stack = -superres_cumsum_stack + max_value
+            dl_image = ((dl_image - np.min(dl_image)) / (np.max(dl_image) - np.min(dl_image)) * max_value)
+            dl_image = -dl_image + max_value
+            superres_image = ((superres_image - np.min(superres_image)) / (np.max(superres_image) - np.min(superres_image)) * max_value)
+            superres_image = -superres_image + max_value
+            
         stack_superres_cumsum = np.vstack([superres_image_stack, superres_cumsum_stack])
         del superres_cumsum_stack
         

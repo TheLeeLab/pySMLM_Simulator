@@ -156,7 +156,7 @@ class IO_Functions():
             volume = np.asarray(np.swapaxes(volume,1,2), dtype='double')
         io.imsave(file_path, np.asarray(volume, dtype=bit), plugin='tifffile', bigtiff=True, photometric='minisblack', metadata={'Software': 'Python'}, check_contrast=False)
 
-    def write_gif(self, volume, file_path, duration=100, loop=0, two_images=True):
+    def write_gif(self, volume, file_path, duration=50, loop=0, two_images=True):
         """
         Write a GIF file using the PIL library.
     

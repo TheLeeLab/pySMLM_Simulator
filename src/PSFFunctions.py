@@ -149,7 +149,7 @@ class PSF_Functions():
         def simulate_frames(frame):
             singleframe_subset = np.random.choice(pixel_subset, int(labelling_number/n_frames))
             x0, y0 = np.unravel_index(singleframe_subset, image_size, order='F')
-            superres_cumsum_matrix[x0, y0, frame:] = n_photons
+            superres_cumsum_matrix[x0, y0, frame] = n_photons
             superres_image_matrix[:, :, frame] += self.gaussian2d_PSF_pixel(image_size, 
                                                     sigma_psf/pixel_size, x0, y0, n_photons, bitdepth)
         
@@ -157,6 +157,7 @@ class PSF_Functions():
         pool.map(simulate_frames, np.arange(n_frames))
         pool.close(); pool.terminate()
         
+        superres_cumsum_matrix[:,:,:] = np.cumsum(superres_cumsum_matrix, axis=-1)
         x0d, y0d = np.unravel_index(pixel_subset, image_size, order='F')
         dl_image_matrix = self.generate_noisy_image_matrix(image_size,
                                     lambda_sensor, mu_sensor, sigma_sensor, np.float64)
