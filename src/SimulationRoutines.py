@@ -99,6 +99,6 @@ class Simulation_Routines():
         del superres_image
         IO.write_tiff(dl_image, tiff_dl_filepath)
         del dl_image
-        IO.write_gif(stack_superres_cumsum, gif_filepath, duration=200, loop=0)
+        IO.write_gif(stack_superres_cumsum, gif_filepath, fps=500, loop=0)
         del stack_superres_cumsum
         return

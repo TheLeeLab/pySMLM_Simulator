@@ -156,7 +156,7 @@ class IO_Functions():
             volume = np.asarray(np.swapaxes(volume,1,2), dtype='double')
         io.imsave(file_path, np.asarray(volume, dtype=bit), plugin='tifffile', bigtiff=True, photometric='minisblack', metadata={'Software': 'Python'}, check_contrast=False)
 
-    def write_gif(self, volume, file_path, duration=50, loop=0, two_images=True):
+    def write_gif(self, volume, file_path, fps=100, loop=0, two_images=True):
         """
         Write a GIF file using the PIL library.
     
@@ -168,26 +168,24 @@ class IO_Functions():
         - two_images (boolean). If two images stacked on top, will normalise these separately (assumes equal size of images)
         """
         if two_images == True:
-            I8 = np.zeros_like(volume)
-            mid_point = int(I8.shape[0]/2)
+            mid_point = int(volume.shape[0]/2)
             maxhalfone = np.max(volume[:mid_point, :, :])
             minhalfone = np.min(volume[:mid_point, :, :])
-            I8[:mid_point, :, :] = ((volume[:mid_point, :, :] - minhalfone) / (maxhalfone - minhalfone) * 255.9).astype(np.uint8)
+            volume[:mid_point, :, :] = ((volume[:mid_point, :, :] - minhalfone) / (maxhalfone - minhalfone) * 255.9).astype(np.uint8)
             
-            maxhalftwo = np.max(volume[mid_point:, :, :])
+            maxhalftwo = np.mean(volume[mid_point:, :, :])
             minhalftwo = np.min(volume[mid_point:, :, :])           
-            I8[mid_point:, :, :] = ((volume[mid_point:, :, :] - minhalftwo) / (maxhalftwo - minhalftwo) * 255.9).astype(np.uint8)
+            volume[mid_point:, :, :] = ((volume[mid_point:, :, :] - minhalftwo) / (maxhalftwo - minhalftwo) * 255.9).astype(np.uint8)
 
         else:
-            I8 = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * 255.9).astype(np.uint8)
+            volume = ((volume - np.min(volume)) / (np.max(volume) - np.min(volume)) * 255.9).astype(np.uint8)
             
-        del volume
         frames = []
-        for i in np.arange(I8.shape[-1]-1):
-            frames.append(Image.fromarray(I8[:,:,i+1]))
+        for i in np.arange(volume.shape[-1]-1):
+            frames.append(Image.fromarray(volume[:,:,i+1]))
         
-        frame_one = Image.fromarray(I8[:,:,0])
-        del I8
+        frame_one = Image.fromarray(volume[:,:,0])
+        del volume
         frame_one.save(file_path, format="GIF", append_images=frames,
-                       save_all=True, duration=duration, loop=loop)
+                       save_all=True, fps=fps, loop=loop, subrectangles=True)
         return

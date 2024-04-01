@@ -110,6 +110,66 @@ class PSF_Functions():
                     np.asarray(np.random.normal(loc=mu_sensor, scale=sigma_sensor, size=(image_size)), dtype=bitdepth))
         return image_matrix
     
+    def generate_superres_stack_background(self, image_size, labelled_pixels, background_pixels, n_photons=4000, n_photons_b=1000, n_frames=100, 
+        labelling_density=0.2, pixel_size=0.11, imaging_wavelength=0.520, NA=1.49,
+        lambda_sensor=200, mu_sensor=200, sigma_sensor=20, bitdepth=np.float32):
+        """
+        simulates a super-resolution image stack based on an specified labelled
+        pixels in an image
+        
+        Args:
+        - image_size (tuple). tuple of how big the image is in pixels
+        - labelled_pixels (1d array). pixel indices of where labels are
+        - n_photons (int). number of photons per localisation
+        - n_frames (int). number of frames to make up the super-res trace
+        - labelling_density (float). how many of the pixels will be labelled
+            across the whole imaging simulation
+        - pixel_size (float). Default 0.11 micron, how large pixel sizes are
+        - imaging_wavelength (float). Default is 0.52 microns. Imaging wavelength
+        - NA (float). Default 1.49 micron, defines how large your PSF will be
+        - lambda_sensor (float). mean of poisson rnv
+        - mu_semsor (float) mean of gaussian for camera read noise
+        - sigma_sensor (float) sigma of gaussian read noise
+        - bitdepth (type). bit depth. default float32
+
+        Returns:
+        - superres_image_matrix (ND array). ND image matrix with noise and PSFs added.
+        - superres_cumsum_matrix (ND array). ND image matrix of cumulative localisations.
+        - dl_image_matrix (2D array). Equivalent diffraction-limited image.
+        - supreres_image (2D array). Final superres image.
+        """
+        stack_size = (image_size[0], image_size[1], n_frames)
+        sigma_psf = self.diffraction_limit(imaging_wavelength, NA)
+        labelling_number = int(labelling_density*len(labelled_pixels)) # get number of labelled pixels
+        pixel_subset = np.random.choice(labelled_pixels, labelling_number) # get specifically labelled pixels
+        superres_cumsum_matrix = np.zeros(stack_size)
+        superres_image_matrix = self.generate_noisy_image_matrix(stack_size,
+                                    lambda_sensor, mu_sensor, sigma_sensor, bitdepth)
+
+        x0b, y0b = np.unravel_index(background_pixels, image_size, order='F')
+        def simulate_frames(frame):
+            singleframe_subset = np.random.choice(pixel_subset, int(labelling_number/n_frames))
+            x0, y0 = np.unravel_index(singleframe_subset, image_size, order='F')
+            superres_cumsum_matrix[x0, y0, frame] = n_photons
+            superres_image_matrix[:, :, frame] += self.gaussian2d_PSF_pixel(image_size, 
+                                                    sigma_psf/pixel_size, x0, y0, n_photons, bitdepth)
+            superres_image_matrix[:, :, frame] += self.gaussian2d_PSF_pixel(image_size, 
+                                                    sigma_psf/pixel_size, x0b, y0b, n_photons_b, bitdepth)
+        
+        pool = Pool(nodes=cpu_number); pool.restart()
+        pool.map(simulate_frames, np.arange(n_frames))
+        pool.close(); pool.terminate()
+        
+        
+        superres_cumsum_matrix[:,:,:] = np.cumsum(superres_cumsum_matrix, axis=-1)
+        x0d, y0d = np.unravel_index(pixel_subset, image_size, order='F')
+        dl_image_matrix = self.generate_noisy_image_matrix(image_size,
+                                    lambda_sensor, mu_sensor, sigma_sensor, np.float64)
+        dl_image_matrix += self.gaussian2d_PSF_pixel(image_size, sigma_psf/pixel_size, x0d, y0d, n_photons, bitdepth)
+        superres_image = np.zeros_like(dl_image_matrix, dtype=bitdepth)
+        superres_image[x0d, y0d] = n_photons
+        return superres_image_matrix, superres_cumsum_matrix, dl_image_matrix, superres_image
+    
     def generate_superres_stack(self, image_size, labelled_pixels, n_photons=4000, n_frames=100, 
         labelling_density=0.2, pixel_size=0.11, imaging_wavelength=0.520, NA=1.49,
         lambda_sensor=100, mu_sensor=100, sigma_sensor=10, bitdepth=np.float32):
