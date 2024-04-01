@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This class contains functions that collect analysis routines for RASP
+This class contains functions that simulate tiffs and gifs
 jsb92, 2024/03/04
 """
 import os
